@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Users, Store, Star, Plus, LogOut, X, Filter } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Users, Store, Star, Plus, LogOut, X, Filter, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function AdminDashboard() {
@@ -15,6 +15,11 @@ export default function AdminDashboard() {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("users");
+  
+  // Sorting states
+  const [userSortConfig, setUserSortConfig] = useState(null);
+  const [storeSortConfig, setStoreSortConfig] = useState(null);
+  
   const [filters, setFilters] = useState({
     name: "",
     email: "",
@@ -41,6 +46,76 @@ export default function AdminDashboard() {
     address: "",
     owner_id: "",
   });
+
+  // Sorting logic
+  const sortData = (data, sortConfig) => {
+    if (!sortConfig) return data;
+    
+    return [...data].sort((a, b) => {
+      const { key, direction } = sortConfig;
+      let aValue = a[key];
+      let bValue = b[key];
+      
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+      
+      // Handle different data types
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Convert to string for comparison
+      aValue = aValue.toString().toLowerCase();
+      bValue = bValue.toString().toLowerCase();
+      
+      if (direction === 'asc') {
+        return aValue.localeCompare(bValue);
+      } else {
+        return bValue.localeCompare(aValue);
+      }
+    });
+  };
+
+  // Sort users
+  const sortedUsers = useMemo(() => {
+    return sortData(users, userSortConfig);
+  }, [users, userSortConfig]);
+
+  // Sort stores
+  const sortedStores = useMemo(() => {
+    return sortData(stores, storeSortConfig);
+  }, [stores, storeSortConfig]);
+
+  // Handle sorting
+  const handleUserSort = (key) => {
+    let direction = 'asc';
+    if (userSortConfig && userSortConfig.key === key && userSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setUserSortConfig({ key, direction });
+  };
+
+  const handleStoreSort = (key) => {
+    let direction = 'asc';
+    if (storeSortConfig && storeSortConfig.key === key && storeSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setStoreSortConfig({ key, direction });
+  };
+
+  // Sort icon component
+  const SortIcon = ({ column, sortConfig }) => {
+    if (!sortConfig || sortConfig.key !== column) {
+      return <ArrowUpDown className="h-4 w-4 text-gray-400" />;
+    }
+    
+    if (sortConfig.direction === 'asc') {
+      return <ArrowUp className="h-4 w-4 text-blue-600" />;
+    } else {
+      return <ArrowDown className="h-4 w-4 text-blue-600" />;
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -216,7 +291,7 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold  bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Admin Dashboard
               </h1>
               <p className="text-gray-600 mt-1">
@@ -372,8 +447,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Users Table */}
-              {users.length === 0 ? (
+              {/* Users Table with Sorting */}
+              {sortedUsers.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">No users found</p>
@@ -384,25 +459,55 @@ export default function AdminDashboard() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
+                        <th 
+                          onClick={() => handleUserSort('name')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Name
+                            <SortIcon column="name" sortConfig={userSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
+                        <th 
+                          onClick={() => handleUserSort('email')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Email
+                            <SortIcon column="email" sortConfig={userSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Address
+                        <th 
+                          onClick={() => handleUserSort('address')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Address
+                            <SortIcon column="address" sortConfig={userSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Role
+                        <th 
+                          onClick={() => handleUserSort('role')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Role
+                            <SortIcon column="role" sortConfig={userSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Created
+                        <th 
+                          onClick={() => handleUserSort('created_at')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Created
+                            <SortIcon column="created_at" sortConfig={userSortConfig} />
+                          </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map((user) => (
+                      {sortedUsers.map((user) => (
                         <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {user.name}
@@ -498,8 +603,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Stores Table */}
-              {stores.length === 0 ? (
+              {/* Stores Table with Sorting */}
+              {sortedStores.length === 0 ? (
                 <div className="text-center py-12">
                   <Store className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-500 text-lg">No stores found</p>
@@ -510,25 +615,55 @@ export default function AdminDashboard() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
+                        <th 
+                          onClick={() => handleStoreSort('name')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Name
+                            <SortIcon column="name" sortConfig={storeSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Email
+                        <th 
+                          onClick={() => handleStoreSort('email')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Email
+                            <SortIcon column="email" sortConfig={storeSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Address
+                        <th 
+                          onClick={() => handleStoreSort('address')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Address
+                            <SortIcon column="address" sortConfig={storeSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Rating
+                        <th 
+                          onClick={() => handleStoreSort('average_rating')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Rating
+                            <SortIcon column="average_rating" sortConfig={storeSortConfig} />
+                          </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total Ratings
+                        <th 
+                          onClick={() => handleStoreSort('total_ratings')}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            Total Ratings
+                            <SortIcon column="total_ratings" sortConfig={storeSortConfig} />
+                          </div>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {stores.map((store) => (
+                      {sortedStores.map((store) => (
                         <tr key={store.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {store.name}
@@ -572,7 +707,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
             {/* Backdrop */}
             <div 
-              className="fixed inset-0 transition-opacity bg-gray-800 bg-opacity-50 opacity-50" 
+              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-50" 
               onClick={() => setShowCreateUser(false)}
               aria-hidden="true"
             ></div>
@@ -681,7 +816,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
             {/* Backdrop */}
             <div 
-              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-50 opacity-50" 
+              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-50" 
               onClick={() => setShowCreateStore(false)}
               aria-hidden="true"
             ></div>
