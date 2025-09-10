@@ -3,9 +3,20 @@ const bcrypt = require("bcrypt");
 const AuthMiddleware = require("../middleware/auth");
 
 class UserController {
+  // Define allowed roles as a constant
+  static ALLOWED_ROLES = ['normal', 'admin', 'store_owner'];
+
   static async register(req, res) {
     try {
-      const { name, email, password, address } = req.body;
+      const { name, email, password, address, role = 'normal' } = req.body;
+
+      // SECURITY FIX: Validate role input
+      if (role && !UserController.ALLOWED_ROLES.includes(role)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid role. Allowed roles are: normal, admin, store_owner" 
+        });
+      }
 
       const existingUser = await User.findByEmail(email);
       if (existingUser) {
@@ -14,7 +25,14 @@ class UserController {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await User.create({ name, email, password: hashedPassword, address, role: "normal" });
+      // Always default to 'normal' for public registration
+      const user = await User.create({ 
+        name, 
+        email, 
+        password: hashedPassword, 
+        address, 
+        role: "normal" // Force normal role for public registration
+      });
 
       const token = AuthMiddleware.generateToken(user);
 
@@ -38,6 +56,40 @@ class UserController {
     }
   }
 
+  static async createUser(req, res) {
+    try {
+      const { name, email, password, address, role = 'normal' } = req.body;
+
+      // SECURITY FIX: Validate role input
+      if (!UserController.ALLOWED_ROLES.includes(role)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Invalid role. Allowed roles are: normal, admin, store_owner" 
+        });
+      }
+
+      // SECURITY FIX: Only admins can create admin/store_owner users
+      if ((role === 'admin' || role === 'store_owner') && req.user.role !== 'admin') {
+        return res.status(403).json({ 
+          success: false, 
+          message: "Access denied. Only admins can create admin or store owner users." 
+        });
+      }
+
+      const existingUser = await User.findByEmail(email);
+      if (existingUser) return res.status(400).json({ success: false, message: "User with this email already exists" });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await User.create({ name, email, password: hashedPassword, address, role });
+
+      res.status(201).json({ success: true, message: "User created successfully", data: user });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ success: false, message: "Error creating user", error: error.message });
+    }
+  }
+
+  // Rest of your methods remain the same...
   static async login(req, res) {
     try {
       const { email, password } = req.body;
@@ -90,23 +142,6 @@ class UserController {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ success: false, message: "Error fetching users", error: error.message });
-    }
-  }
-
-  static async createUser(req, res) {
-    try {
-      const { name, email, password, address, role } = req.body;
-
-      const existingUser = await User.findByEmail(email);
-      if (existingUser) return res.status(400).json({ success: false, message: "User with this email already exists" });
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await User.create({ name, email, password: hashedPassword, address, role });
-
-      res.status(201).json({ success: true, message: "User created successfully", data: user });
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ success: false, message: "Error creating user", error: error.message });
     }
   }
 

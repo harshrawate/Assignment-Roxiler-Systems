@@ -62,30 +62,39 @@ static async createStore(req, res) {
 
 
   static async getStoreById(req, res) {
-    try {
-      const { storeId } = req.params
+  try {
+    const { storeId } = req.params;
+    const { email } = req.query; // Accept email as query parameter
 
-      const store = await Store.findById(storeId)
-      if (!store) {
-        return res.status(404).json({
-          success: false,
-          message: "Store not found",
-        })
-      }
+    // First try to find store by ID
+    let store = await Store.findOne({ where: { id: storeId } });
 
-      res.json({
-        success: true,
-        data: store,
-      })
-    } catch (error) {
-      console.error("Error fetching store:", error)
-      res.status(500).json({
-        success: false,
-        message: "Error fetching store",
-        error: error.message,
-      })
+    // If not found by ID and email provided, try to find by email
+    if (!store && email) {
+      store = await Store.findOne({ where: { email } });
     }
+
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "Store not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: store,
+    });
+  } catch (error) {
+    console.error("Error fetching store:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching store",
+      error: error.message,
+    });
   }
+}
+
 
   static async getStoreRaters(req, res) {
     try {
