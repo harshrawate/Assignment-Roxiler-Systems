@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Star, LogOut, Search, MapPin, X, Store, Heart, TrendingUp, 
-  Award, Sparkles, Shield, CheckCircle, AlertCircle, Filter
+  Award, Sparkles, Shield, CheckCircle, AlertCircle, Filter, 
+  Users, ChevronDown, ChevronUp, Eye
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -11,6 +12,8 @@ export default function UserDashboard() {
   const [stores, setStores] = useState([]);
   const [searchFilters, setSearchFilters] = useState({ name: "", address: "" });
   const [userRatings, setUserRatings] = useState({});
+  const [storeRatings, setStoreRatings] = useState({});
+  const [expandedRatings, setExpandedRatings] = useState({});
   const [showPasswordUpdate, setShowPasswordUpdate] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +27,6 @@ export default function UserDashboard() {
     fetchStores();
   }, [user]);
 
-  // Auto-apply search filters (debounced)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchStores();
@@ -32,7 +34,13 @@ export default function UserDashboard() {
     return () => clearTimeout(timeoutId);
   }, [searchFilters]);
 
-  // Show notification
+  useEffect(() => {
+    if (stores.length > 0) {
+      const storeIds = stores.map(store => store.id);
+      fetchAllRatingsForStores(storeIds);
+    }
+  }, [stores]);
+
   const showNotification = (message, type = "success") => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
@@ -40,7 +48,6 @@ export default function UserDashboard() {
     }, 4000);
   };
 
-  // Enhanced password validation
   const validatePassword = (password) => {
     const errors = {};
     
@@ -80,6 +87,41 @@ export default function UserDashboard() {
     }
   };
 
+  const fetchAllRatingsForStores = async (storeIds) => {
+    try {
+      const ratingRequests = storeIds.map(storeId => 
+        fetch(`http://localhost:5000/api/ratings/store/${storeId}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        })
+        .then(response => response.json())
+        .then(result => ({
+          storeId,
+          ratings: result.success ? result.data || [] : []
+        }))
+        .catch(error => {
+          console.error(`Error fetching ratings for store ${storeId}:`, error);
+          return { storeId, ratings: [] };
+        })
+      );
+
+      const results = await Promise.all(ratingRequests);
+      
+      const ratingsData = {};
+      results.forEach(({ storeId, ratings }) => {
+        ratingsData[storeId] = ratings.map(rating => ({
+          ...rating,
+          name: rating.name || rating.user_name || `User ${rating.user_id}`,
+          created_at: rating.created_at || new Date().toISOString()
+        }));
+      });
+      
+      setStoreRatings(ratingsData);
+    } catch (error) {
+      console.error("Error fetching store ratings:", error);
+      showNotification("Failed to load store ratings.", "error");
+    }
+  };
+
   const fetchUserRatings = async (storeList) => {
     const ratings = {};
     for (const store of storeList) {
@@ -113,6 +155,7 @@ export default function UserDashboard() {
       if (result.success) {
         setUserRatings({ ...userRatings, [storeId]: rating });
         fetchStores();
+        fetchAllRatingsForStores([storeId]);
         showNotification(`Thanks for rating! Your ${rating}-star review has been submitted. ⭐`, "success");
       } else {
         showNotification(result.message, "error");
@@ -160,27 +203,132 @@ export default function UserDashboard() {
     }
   };
 
-  const renderStars = (storeId, currentRating = 0) => (
+  const renderStars = (storeId, currentRating = 0, isInteractive = true) => (
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
-          onClick={() => handleRating(storeId, star)}
-          onMouseEnter={() => setHoveredStar({ storeId, star })}
-          onMouseLeave={() => setHoveredStar({ storeId: null, star: 0 })}
-          className="focus:outline-none transition-all duration-200 transform hover:scale-110"
+          onClick={isInteractive ? () => handleRating(storeId, star) : undefined}
+          onMouseEnter={isInteractive ? () => setHoveredStar({ storeId, star }) : undefined}
+          onMouseLeave={isInteractive ? () => setHoveredStar({ storeId: null, star: 0 }) : undefined}
+          className={`focus:outline-none transition-all duration-200 ${isInteractive ? 'transform hover:scale-110 cursor-pointer' : 'cursor-default'}`}
+          disabled={!isInteractive}
         >
           <Star
-            className={`h-6 w-6 transition-all duration-200 ${
-              star <= (hoveredStar.storeId === storeId ? hoveredStar.star : currentRating)
+            className={`h-${isInteractive ? '6' : '3'} w-${isInteractive ? '6' : '3'} transition-all duration-200 ${
+              star <= (isInteractive && hoveredStar.storeId === storeId ? hoveredStar.star : currentRating)
                 ? "text-yellow-400 fill-yellow-400 drop-shadow-sm"
-                : "text-gray-300 hover:text-yellow-300"
+                : "text-gray-300"
             }`}
           />
         </button>
       ))}
     </div>
   );
+
+  // ✨ FIXED: Compact individual ratings component
+  const renderIndividualRatings = (storeId) => {
+    const ratings = storeRatings[storeId] || [];
+    const isExpanded = expandedRatings[storeId];
+    const displayRatings = isExpanded ? ratings : ratings.slice(0, 3);
+
+    if (ratings.length === 0) {
+      return (
+        <div className="text-center py-6">
+          <Users className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+          <p className="text-gray-500 text-sm">No individual ratings yet</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
+            <Eye className="h-4 w-4" />
+            Customer Reviews ({ratings.length})
+          </h4>
+          {ratings.length > 3 && (
+            <button
+              onClick={() => setExpandedRatings(prev => ({ ...prev, [storeId]: !isExpanded }))}
+              className="text-purple-600 hover:text-purple-700 text-xs font-medium flex items-center gap-1"
+            >
+              {isExpanded ? (
+                <>
+                  Show Less <ChevronUp className="h-3 w-3" />
+                </>
+              ) : (
+                <>
+                  Show All <ChevronDown className="h-3 w-3" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* ✨ FIXED: Compact scrollable container with fixed height */}
+        <div className="bg-white rounded-lg border border-gray-100 max-h-40 overflow-y-auto">
+          <div className="divide-y divide-gray-100">
+            {displayRatings.map((rating, index) => (
+              <div key={rating.id || index} className="p-3 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0">
+                      {rating.name ? rating.name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 text-sm truncate" title={rating.name || 'Anonymous User'}>
+                        {rating.name || 'Anonymous User'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(rating.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-3 w-3 ${
+                            star <= rating.rating
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs font-semibold text-gray-700 min-w-0">
+                      {rating.rating}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Show if this is the current user's rating */}
+                {rating.user_id === user.id && (
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Your Rating
+                    </span>
+                  </div>
+                )}
+                
+                {/* Add comment if available */}
+                {rating.comment && (
+                  <p className="text-gray-600 text-xs mt-2 italic line-clamp-2" title={rating.comment}>
+                    "{rating.comment}"
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const clearFilters = () => {
     setSearchFilters({ name: "", address: "" });
@@ -431,6 +579,11 @@ export default function UserDashboard() {
                       </div>
                     </div>
 
+                    {/* ✨ Individual Customer Ratings Section - FIXED */}
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                      {renderIndividualRatings(store.id)}
+                    </div>
+
                     {/* User Rating */}
                     <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border border-purple-100">
                       <div className="flex items-center justify-between mb-4">
@@ -490,7 +643,7 @@ export default function UserDashboard() {
         )}
       </div>
 
-      {/* Enhanced Password Update Modal */}
+      {/* Password Update Modal */}
       {showPasswordUpdate && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
