@@ -1,6 +1,9 @@
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcrypt");
 
+// ✨ Load environment variables
+require('dotenv').config();
+
 class Database {
   constructor() {
     this.pool = null;
@@ -8,10 +11,24 @@ class Database {
 
   async connect() {
     try {
+      // ✨ Auto-create database using env variables
+      const tempConnection = mysql.createPool({
+        host: process.env.DB_HOST || "localhost",
+        user: process.env.DB_USER || "root",
+        password: process.env.DB_PASSWORD,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+      });
+
+      await tempConnection.query("CREATE DATABASE IF NOT EXISTS assignment");
+      await tempConnection.end();
+
+      // ✨ Connect using env variables
       this.pool = mysql.createPool({
-        host: "localhost",
-        user: "root",
-        password: "Harsh@1357",
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
         database: "assignment",
         waitForConnections: true,
         connectionLimit: 10,
