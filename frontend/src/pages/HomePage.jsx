@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { 
   Star, Store, BarChart3, Eye, EyeOff, Shield, Heart, Users, 
@@ -35,7 +33,7 @@ export default function HomePage() {
     }, 4000);
   };
 
-  // Enhanced validation
+  //  validation
   const validateLoginData = (data) => {
     const errors = {};
     if (!data.email || !/\S+@\S+\.\S+/.test(data.email)) {
@@ -163,7 +161,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Enhanced Hero Section */}
+      {/*  Hero Section */}
       <div className="relative z-10 py-20 lg:py-32">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20">
@@ -185,7 +183,7 @@ export default function HomePage() {
             </p>
 
             {/* Stats Row */}
-            <div className="flex items-center justify-center gap-8 text-sm text-gray-600 mb-12">
+            {/* <div className="flex items-center justify-center gap-8 text-sm text-gray-600 mb-12">
               <div className="flex items-center gap-2">
                 <Store className="h-4 w-4 text-blue-600" />
                 <span>1000+ Stores</span>
@@ -198,7 +196,7 @@ export default function HomePage() {
                 <Star className="h-4 w-4 text-yellow-600" />
                 <span>50K+ Reviews</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Enhanced Feature Cards Grid */}
@@ -266,7 +264,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Enhanced Authentication Section */}
+      {/*  Authentication Section */}
       <div className="relative z-10 pb-20">
         <div className="container max-w-lg mx-auto px-4 sm:px-6 lg:px-8">
           {/* Error Display */}
