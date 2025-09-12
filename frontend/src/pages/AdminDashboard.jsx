@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useMemo } from "react";
 import { 
   Users, Store, Star, Plus, LogOut, X, Filter, ArrowUpDown, ArrowUp, ArrowDown, 
@@ -57,7 +55,7 @@ export default function AdminDashboard() {
   // Success notification state
   const [notification, setNotification] = useState({ show: false, message: "", type: "" });
 
-  // All your existing functions (sortData, handleUserSort, etc.) remain the same...
+ 
   const sortData = (data, sortConfig) => {
     if (!sortConfig) return data;
     
@@ -120,7 +118,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // All your existing validation and API functions remain the same...
+  
   const validateUser = (userData) => {
     const errors = {};
     
@@ -478,7 +476,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Enhanced Tabs Navigation */}
+        
         <div className="flex space-x-2 bg-white/60 backdrop-blur-sm p-2 rounded-2xl mb-8 shadow-lg border border-white/20">
           <button
             onClick={() => setActiveTab("users")}
@@ -504,7 +502,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* Users Tab Content with Fixed Name Column */}
+        {/* Users Tab Content  */}
         {activeTab === "users" && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20">
             <div className="p-8 pb-6">
@@ -531,7 +529,7 @@ export default function AdminDashboard() {
             </div>
             
             <div className="px-8 pb-8">
-              {/* Enhanced User Filters */}
+              {/*  User Filters */}
               <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-xl mb-8 border border-gray-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-blue-100 rounded-lg">
@@ -592,7 +590,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Enhanced Users Table with Fixed Column Widths */}
+              {/*  Users Table with Fixed Column Widths */}
               {sortedUsers.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="mb-6">
@@ -750,7 +748,7 @@ export default function AdminDashboard() {
             </div>
             
             <div className="px-8 pb-8">
-              {/* Enhanced Store Filters */}
+              {/*  Store Filters */}
               <div className="bg-gradient-to-r from-gray-50 to-green-50 p-6 rounded-xl mb-8 border border-gray-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-green-100 rounded-lg">
@@ -798,7 +796,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Enhanced Stores Table */}
+              {/*  Stores Table */}
               {sortedStores.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="mb-6">
@@ -919,7 +917,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Modals remain exactly the same... */}
+      
       {showCreateUser && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
@@ -1059,7 +1057,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Enhanced Create Store Modal */}
+      {/*  Create Store Modal */}
       {showCreateStore && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center">
