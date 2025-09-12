@@ -1,4 +1,5 @@
 const mysql = require("mysql2/promise");
+const bcrypt = require("bcrypt");
 
 class Database {
   constructor() {
@@ -8,10 +9,10 @@ class Database {
   async connect() {
     try {
       this.pool = mysql.createPool({
-        host: "localhost", // change if needed
-        user: "root", // your MySQL username
-        password: "Harsh@1357", // your MySQL password
-        database: "assignment", // your database name
+        host: "localhost",
+        user: "root",
+        password: "Harsh@1357",
+        database: "assignment",
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
@@ -32,7 +33,7 @@ class Database {
           id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(60) NOT NULL,
           email VARCHAR(100) UNIQUE NOT NULL,
-          password VARCHAR(100) NOT NULL,
+          password VARCHAR(255) NOT NULL,
           address VARCHAR(400),
           role ENUM('admin', 'normal', 'store_owner') NOT NULL DEFAULT 'normal',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -47,7 +48,7 @@ class Database {
           address VARCHAR(400),
           owner_id INT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (owner_id) REFERENCES users(id)
+          FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
         )
       `;
 
@@ -60,8 +61,8 @@ class Database {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           UNIQUE(user_id, store_id),
-          FOREIGN KEY (user_id) REFERENCES users(id),
-          FOREIGN KEY (store_id) REFERENCES stores(id)
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE
         )
       `;
 
@@ -77,7 +78,7 @@ class Database {
           dateOfSale DATE NOT NULL,
           store_id INT,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (store_id) REFERENCES stores(id)
+          FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE SET NULL
         )
       `;
 
@@ -87,7 +88,6 @@ class Database {
       await this.pool.query(createTransactionsTable);
 
       console.log("✅ Tables created or already exist");
-
       await this.seedData();
     } catch (err) {
       console.error("❌ Error creating tables:", err);
@@ -97,44 +97,102 @@ class Database {
 
   async seedData() {
     try {
+      // Check if database is already seeded
       const [rows] = await this.pool.query("SELECT COUNT(*) as count FROM users");
       if (rows[0].count > 0) {
         console.log("⚡ Database already seeded");
         return;
       }
 
+      console.log("🌱 Seeding database with sample data...");
+
+      // Hash passwords before storing
+      const saltRounds = 10;
       const seedUsers = [
-        ["System Administrator User", "admin@system.com", "Admin123!", "123 Admin Street, Admin City, AC 12345", "admin"],
-        ["John Doe Normal User Account", "john@example.com", "User123!", "456 User Avenue, User City, UC 67890", "normal"],
-        ["Jane Smith Store Owner Account", "jane@store.com", "Store123!", "789 Store Boulevard, Store City, SC 11111", "store_owner"],
+        {
+          name: "System Administrator User",
+          email: "admin@system.com", 
+          password: await bcrypt.hash("Admin123!", saltRounds),
+          address: "123 Admin Street, Admin City, AC 12345",
+          role: "admin"
+        },
+        {
+          name: "John Doe Normal User Account",
+          email: "john@example.com",
+          password: await bcrypt.hash("User123!", saltRounds), 
+          address: "456 User Avenue, User City, UC 67890",
+          role: "normal"
+        },
+        {
+          name: "Jane Smith Store Owner Account", 
+          email: "jane@store.com",
+          password: await bcrypt.hash("Store123!", saltRounds),
+          address: "789 Store Boulevard, Store City, SC 11111",
+          role: "store_owner"
+        }
       ];
 
+      // Insert users and get their IDs
       const insertUser = `INSERT INTO users (name, email, password, address, role) VALUES (?, ?, ?, ?, ?)`;
+      const userIds = [];
+      
       for (const user of seedUsers) {
-        await this.pool.query(insertUser, user);
+        const [result] = await this.pool.query(insertUser, [
+          user.name, user.email, user.password, user.address, user.role
+        ]);
+        userIds.push(result.insertId);
+        console.log(`👤 Created user: ${user.email} (ID: ${result.insertId})`);
       }
 
+      // Get the store owner ID (Jane - 3rd user)
+      const storeOwnerID = userIds[2];
+
+      // Insert stores
       const seedStores = [
-        ["Electronics Paradise Store", "contact@electronics.com", "100 Electronics Way, Tech City, TC 22222", 3],
-        ["Fashion Forward Boutique Store", "info@fashion.com", "200 Fashion Street, Style City, SC 33333", 3],
+        {
+          name: "Electronics Paradise Store",
+          email: "contact@electronics.com", 
+          address: "100 Electronics Way, Tech City, TC 22222",
+          owner_id: storeOwnerID
+        },
+        {
+          name: "Fashion Forward Boutique Store",
+          email: "info@fashion.com",
+          address: "200 Fashion Street, Style City, SC 33333", 
+          owner_id: storeOwnerID
+        }
       ];
 
       const insertStore = `INSERT INTO stores (name, email, address, owner_id) VALUES (?, ?, ?, ?)`;
+      const storeIds = [];
+      
       for (const store of seedStores) {
-        await this.pool.query(insertStore, store);
+        const [result] = await this.pool.query(insertStore, [
+          store.name, store.email, store.address, store.owner_id
+        ]);
+        storeIds.push(result.insertId);
+        console.log(`🏪 Created store: ${store.name} (ID: ${result.insertId})`);
       }
 
+      // Insert ratings (John rates both stores)
+      const johnID = userIds[1]; // John's ID
       const seedRatings = [
-        [2, 1, 5],
-        [2, 2, 4],
+        { user_id: johnID, store_id: storeIds[0], rating: 5 },
+        { user_id: johnID, store_id: storeIds[1], rating: 4 }
       ];
 
       const insertRating = `INSERT INTO ratings (user_id, store_id, rating) VALUES (?, ?, ?)`;
       for (const rating of seedRatings) {
-        await this.pool.query(insertRating, rating);
+        await this.pool.query(insertRating, [rating.user_id, rating.store_id, rating.rating]);
+        console.log(`⭐ Created rating: User ${rating.user_id} gave ${rating.rating} stars to Store ${rating.store_id}`);
       }
 
-      console.log("✅ Database seeded with sample data");
+      console.log("✅ Database seeded successfully!");
+      console.log("🔐 Test Login Credentials:");
+      console.log("   Admin: admin@system.com / Admin123!");
+      console.log("   User:  john@example.com / User123!");
+      console.log("   Owner: jane@store.com / Store123!");
+
     } catch (err) {
       console.error("❌ Error seeding database:", err);
       throw err;
