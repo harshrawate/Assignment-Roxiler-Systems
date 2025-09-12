@@ -47,7 +47,7 @@ git clone https://github.com/harshrawate/Assignment-Roxiler-Systems.git
 
 2. **Backend Setup**
 
-```backend
+
 cd backend
 npm install
 
@@ -55,7 +55,6 @@ npm install
 
 Create a `.env` file inside `backend/` with:
 
-```env
 PORT=5000
 DB_HOST=localhost
 DB_USER=your_mysql_user
@@ -68,7 +67,7 @@ npm run dev
 
 5. **Frontend Setup ( (Vite on port 5173))** (New terminal window)
 
-```bash
+
 cd frontend
 npm install
 npm run dev
