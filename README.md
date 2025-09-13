@@ -83,6 +83,12 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - Backend API: `http://localhost:5000`
 
+
+## ⚠️ **Very Important Usage Notes **
+#### **Existing Store Emails (DO NOT use for creating new stores)**
+- **Unique Email Requirement**: Each store must have a unique email address
+- **Do Not Use jane@store.com Mail for Store Creation create new user and then use that email**
+
 ## 🔐 **Demo Login Credentials**
 
 After setup, use these credentials to test the application:
