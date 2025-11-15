@@ -5,7 +5,7 @@ This project is a modern web application that allows users to discover stores, r
 
 ### **Key Features**
 - 🔐 **Role-based Authentication** (Admin, Store Owner, Normal User)
-- 🏪 **Store Management** with CRUD operations
+- 🏪 **Store Management** with CRUD operations.
 - ⭐ **Rating System** with real-time updates
 - 👥 **User Management** with different privilege levels
 - 📊 **Analytics Dashboard** for admins and store owners
