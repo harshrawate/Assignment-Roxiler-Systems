@@ -3,6 +3,7 @@
 ## 🎯 **Project Overview**
 This project is a modern web application that allows users to discover stores, rate them, and manage business operations through different user roles. Built with React frontend, Node.js backend, and MySQL database with automatic database creation and seeding.
 
+
 ### **Key Features**
 - 🔐 **Role-based Authentication** (Admin, Store Owner, Normal User)
 - 🏪 **Store Management** with CRUD operations.
